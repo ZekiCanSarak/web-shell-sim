@@ -168,6 +168,32 @@ const App: React.FC = () => {
     }
   };
 
+  const handleLike = async (postId: string) => {
+    if (!currentUser) {
+      addOutput('You must be logged in to like posts', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/posts/${postId}/like`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to like/unlike post');
+      }
+
+      addOutput(data.message, 'success');
+    } catch (error: any) {
+      addOutput(error.message || 'An error occurred while liking/unliking the post', 'error');
+    }
+  };
+
   const handleFeed = async () => {
     if (!currentUser) {
       addOutput('You must be logged in to view your feed', 'error');
@@ -190,7 +216,7 @@ const App: React.FC = () => {
       addOutput('\n=== Your Feed ===');
       posts.forEach((post: Post) => {
         addOutput(`\n@${post.username} (${post.timestamp})`);
-        addOutput(post.content);
+        addOutput(`[Post ID: ${post.id}] ${post.content}`);
         addOutput(`Likes: ${post.likes}\n${'─'.repeat(40)}`);
       });
     } catch (error: any) {
@@ -242,6 +268,14 @@ const App: React.FC = () => {
         handlePost(args.join(' '));
         break;
 
+      case 'like':
+        if (args.length !== 1) {
+          addOutput('Usage: like <post_id>', 'error');
+          break;
+        }
+        handleLike(args[0]);
+        break;
+
       case 'feed':
         handleFeed();
         break;
@@ -256,6 +290,7 @@ const App: React.FC = () => {
   login <username> <password>  - Log into your account
   logout                       - Log out of your account
   post "message"              - Create a new post
+  like <post_id>             - Like or unlike a post
   feed                        - View posts from people you follow
   clear                       - Clear the terminal
   help                        - Show this help message`);
