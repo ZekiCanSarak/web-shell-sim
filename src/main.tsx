@@ -1,4 +1,3 @@
-import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { createGlobalStyle } from 'styled-components'
@@ -10,14 +9,16 @@ const GlobalStyle = createGlobalStyle`
     box-sizing: border-box;
   }
 
-  body {
+  html, body, #root {
+    height: 100%;
+    width: 100%;
     background-color: #1e1e1e;
   }
 `
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+  <>
     <GlobalStyle />
     <App />
-  </React.StrictMode>,
+  </>
 ) 
