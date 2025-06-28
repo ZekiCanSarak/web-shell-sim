@@ -194,6 +194,65 @@ const App: React.FC = () => {
     }
   };
 
+  const handleFollow = async (userId: string) => {
+    if (!currentUser) {
+      addOutput('You must be logged in to follow users', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/users/follow/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to follow/unfollow user');
+      }
+
+      addOutput(data.message, 'success');
+    } catch (error: any) {
+      addOutput(error.message || 'An error occurred while following/unfollowing the user', 'error');
+    }
+  };
+
+  const handleProfile = async (username: string) => {
+    if (!currentUser) {
+      addOutput('You must be logged in to view profiles', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/users/profile/${username}`, {
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch profile');
+      }
+
+      addOutput(`Profile for @${data.username}:`, 'success');
+      addOutput(`Followers: ${data.followers_count}`);
+      addOutput(`Following: ${data.following_count}`);
+      addOutput(`Posts: ${data.posts_count}`);
+      addOutput(`Following: ${data.is_following ? 'Yes' : 'No'}`);
+      addOutput(`Member since: ${new Date(data.created_at).toLocaleDateString()}`);
+      
+      // Add the user's ID to the output for follow command
+      addOutput(`User ID: ${data.id} (use this ID with the follow command)`);
+    } catch (error: any) {
+      addOutput(error.message || 'An error occurred while fetching the profile', 'error');
+    }
+  };
+
   const handleFeed = async () => {
     if (!currentUser) {
       addOutput('You must be logged in to view your feed', 'error');
@@ -225,30 +284,28 @@ const App: React.FC = () => {
   };
 
   const handleCommand = (command: string) => {
-    const parts = command.trim().split(' ');
-    const cmd = parts[0].toLowerCase();
-    const args = parts.slice(1);
+    const args = command.trim().split(' ');
+    const cmd = args[0].toLowerCase();
 
     setCommandHistory(prev => [...prev, command]);
     setHistoryIndex(-1);
-
     addOutput(`${getPrompt()} ${command}`);
 
     switch (cmd) {
       case 'signup':
-        if (args.length !== 2) {
+        if (args.length !== 3) {
           addOutput('Usage: signup <username> <password>', 'error');
           break;
         }
-        handleSignup(args[0], args[1]);
+        handleSignup(args[1], args[2]);
         break;
 
       case 'login':
-        if (args.length !== 2) {
+        if (args.length !== 3) {
           addOutput('Usage: login <username> <password>', 'error');
           break;
         }
-        handleLogin(args[0], args[1]);
+        handleLogin(args[1], args[2]);
         break;
 
       case 'logout':
@@ -269,11 +326,11 @@ const App: React.FC = () => {
         break;
 
       case 'like':
-        if (args.length !== 1) {
+        if (args.length !== 2) {
           addOutput('Usage: like <post_id>', 'error');
           break;
         }
-        handleLike(args[0]);
+        handleLike(args[1]);
         break;
 
       case 'feed':
@@ -285,26 +342,45 @@ const App: React.FC = () => {
         break;
 
       case 'help':
-        addOutput(`Available commands:
-  signup <username> <password> - Create a new account
-  login <username> <password>  - Log into your account
-  logout                       - Log out of your account
-  post "message"              - Create a new post
-  like <post_id>             - Like or unlike a post
-  feed                        - View posts from people you follow
-  clear                       - Clear the terminal
-  help                        - Show this help message`);
+        addOutput('Available commands:');
+        addOutput('  signup <username> <password> - Create a new account');
+        addOutput('  login <username> <password> - Log into your account');
+        addOutput('  post <content> - Create a new post');
+        addOutput('  feed - View your feed');
+        addOutput('  like <post_id> - Like/unlike a post');
+        addOutput('  profile <username> - View a user\'s profile');
+        addOutput('  follow <user_id> - Follow/unfollow a user');
+        addOutput('  clear - Clear the terminal');
+        addOutput('  logout - Log out of your account');
+        break;
+
+      case 'profile':
+        if (args.length !== 2) {
+          addOutput('Usage: profile <username>', 'error');
+        } else {
+          handleProfile(args[1]);
+        }
+        break;
+
+      case 'follow':
+        if (args.length !== 2) {
+          addOutput('Usage: follow <user_id>', 'error');
+        } else {
+          handleFollow(args[1]);
+        }
         break;
 
       default:
-        addOutput(`Command not found: ${cmd}. Type 'help' for available commands.`, 'error');
+        addOutput(`Command not found: ${cmd}`, 'error');
+        addOutput('Type "help" for available commands.');
     }
+    
+    setInputValue('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && inputValue.trim()) {
       handleCommand(inputValue);
-      setInputValue('');
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       if (historyIndex < commandHistory.length - 1) {

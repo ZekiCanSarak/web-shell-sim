@@ -13,6 +13,7 @@ node_modules/
 # Build outputs
 /dist
 /build
+server/dist/
 
 # Logs
 npm-debug.log*
